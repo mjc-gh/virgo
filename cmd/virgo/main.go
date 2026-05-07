@@ -65,9 +65,15 @@ func main() {
 				Name:      "markdown",
 				Usage:     "Get the markdown content of a URL",
 				Arguments: []cli.Argument{&cli.StringArg{Name: "url"}},
-				Flags:     baseFlags,
+				Flags: append([]cli.Flag{
+					&cli.BoolFlag{Name: "include-images", Aliases: []string{"i"}, Usage: "include images in markdown output"},
+				}, baseFlags...),
 				Action: func(ctx context.Context, cmd *cli.Command) error {
-					return runTask(ctx, cmd, "markdown", map[string]any{}, stdOutCallback)
+					params := map[string]any{
+						"include-images": cmd.Bool("include-images"),
+					}
+
+					return runTask(ctx, cmd, "markdown", params, stdOutCallback)
 				},
 			}, {
 				Name:      "plaintext",

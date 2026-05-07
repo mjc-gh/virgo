@@ -1,0 +1,130 @@
+package engine
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/mjc-gh/virgo"
+	"github.com/mjc-gh/virgo/internal/pagetest"
+)
+
+func TestPerformMarkdownTask(t *testing.T) {
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	content := mr.Content
+
+	// Test headers are converted
+	assert.Contains(t, content, "# Main Heading")
+	assert.Contains(t, content, "## Subheading Level 2")
+	assert.Contains(t, content, "### Subheading Level 3")
+	assert.Contains(t, content, "#### Subheading Level 4")
+	assert.Contains(t, content, "##### Subheading Level 5")
+	assert.Contains(t, content, "###### Subheading Level 6")
+
+	// Test links are converted
+	assert.Contains(t, content, "[link to example](https://example.com)")
+
+	// Test text formatting
+	assert.Contains(t, content, "**bold text**")
+	assert.Contains(t, content, "*italic text*")
+	assert.Contains(t, content, "**bold using b tag**")
+	assert.Contains(t, content, "*italic using i tag*")
+	assert.Contains(t, content, "<u>underlined text</u>")
+	assert.Contains(t, content, "~~strikethrough text~~")
+
+	// Test inline code
+	assert.Contains(t, content, "`code example`")
+
+	// Test code blocks
+	assert.Contains(t, content, "```")
+	assert.Contains(t, content, "function hello()")
+
+	// Test unordered list
+	assert.Contains(t, content, "- First item")
+	assert.Contains(t, content, "- Second item")
+	assert.Contains(t, content, "- Third item")
+
+	// Test ordered list
+	assert.Contains(t, content, "1. Step one")
+	assert.Contains(t, content, "2. Step two")
+	assert.Contains(t, content, "3. Step three")
+
+	// Test blockquote
+	assert.Contains(t, content, "> ")
+	assert.Contains(t, content, "blockquote")
+
+	// Test image is NOT included by default
+	assert.NotContains(t, content, "![Test Image]")
+
+	// Test horizontal rule
+	assert.Contains(t, content, "---")
+
+	// Test that hidden elements are excluded
+	assert.NotContains(t, content, "display none")
+	assert.NotContains(t, content, "visibility hidden")
+	assert.NotContains(t, content, "opacity 0")
+
+	// Test that nav/footer elements are excluded
+	assert.NotContains(t, content, "Home")
+	assert.NotContains(t, content, "About")
+	assert.NotContains(t, content, "Footer content")
+}
+
+func TestPerformMarkdownTaskSimplePage(t *testing.T) {
+	server := pagetest.NewTestWebServer("simple")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	// Simple page has no main/article, should fall back to body
+	assert.Contains(t, mr.Content, "Simple Page")
+}
+
+func TestPerformMarkdownTaskFallbackToBody(t *testing.T) {
+	// Test that when there's no main/article element, body is used
+	server := pagetest.NewTestWebServer("simple")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	// The simple page has "Simple Page" in the body, plus "Hello world!" added by script.js
+	assert.Contains(t, mr.Content, "Simple Page")
+	assert.Contains(t, mr.Content, "Hello world!")
+}
+
+func TestPerformMarkdownTaskIncludeImages(t *testing.T) {
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL, WithParams(map[string]any{
+		"include-images": true,
+	}))
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Test that images ARE included when param is set
+	assert.Contains(t, mr.Content, "![Test Image](/images/test.png)")
+}
