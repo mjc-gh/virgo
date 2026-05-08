@@ -133,13 +133,26 @@
 
             // Code
             case 'code':
-                if (el.parentElement?.tagName?.toLowerCase() === 'pre') {
+                if (el.closest('pre') !== null) {
                     return el.textContent;
                 }
                 return '`' + el.textContent + '` ';
 
             case 'pre':
-                return '```\n' + el.textContent.trim() + '\n```\n\n';
+                let lang = '';
+                if (el.dataset.language !== null) {
+                    lang = el.dataset.language
+                }
+
+                // `innerText` will format content better and takes styling into
+                // account. However, if the element is hidden, `innerText` will
+                // return an empty string and we can fallback to `textContent`
+                let preTxt = el.innerText.trim();
+                if (preTxt === '') {
+                    preTxt = el.textContent.trim();
+                }
+
+                return '\n```' + lang + '\n' + preTxt + '\n```\n\n';
 
             // Images
             case 'img':
@@ -177,8 +190,5 @@
 
     // Final clean up
     // - Replace excessive newlines (more than 2 consecutive)
-    // - Replace excessive blankspace before headers
-    return result
-        .replace(/\n[ ]+(#{1,6})/g, '\n$1')
-        .replace(/\n{3,}/g, '\n\n');
+    return result.replace(/\n{3,}/g, '\n\n');
 })(%t)
