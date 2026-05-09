@@ -51,9 +51,29 @@ OPTIONS:
    --help, -h                 show help
 ```
 
+### Headless Shell
+
+You can use the [chromedp headless
+shell](https://hub.docker.com/r/chromedp/headless-shell/) container if
+you do not have Chrome installed locally. This works well on Linux
+servers:
+
+```
+docker pull chromedp/headless-shell:latest
+docker run -d -p 9222:9222 --rm --name headless-shell chromedp/headless-shell
+virgo markdown --remote-port 9222 --remote-host 127.0.0.1 cnn.com
+```
+
 ## Development
 
-You can build the CLI tool with the following:
+You need Go and `golangci-lint`
+
+```
+mise use -g go@1.26.3
+mise use -g golangci-lint@v2.12.2
+```
+
+You can build and test the CLI tool with the following:
 
 ```
 make build.cli
