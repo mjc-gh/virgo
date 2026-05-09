@@ -7,7 +7,7 @@ const SIZE_SMALL = "small"
 const PROFILE_DESKTOP = "desktop"
 const PROFILE_MOBILE = "mobile"
 
-var ChromeDesktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+const ChromeDesktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
 
 func IsValidDeviceType(deviceType string) bool {
 	return (deviceType == PROFILE_DESKTOP) || (deviceType == PROFILE_MOBILE)

@@ -38,6 +38,8 @@ func TestWithRemoteAllocator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			engine := New(1, WithRemoteAllocator(tt.host, tt.port))
 
 			assert.Equal(t, tt.expectedUrl, engine.config.remoteURL)
@@ -49,6 +51,8 @@ func TestWithLogger(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sets logger on engine", func(t *testing.T) {
+		t.Parallel()
+
 		logger := zerolog.Nop()
 
 		engine := New(1, WithLogger(&logger))
@@ -62,6 +66,8 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates engine with valid concurrency", func(t *testing.T) {
+		t.Parallel()
+
 		concurrency := 5
 		engine := New(concurrency)
 
@@ -72,6 +78,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("sets minimum concurrency to 1 when less than 1", func(t *testing.T) {
+		t.Parallel()
+
 		engine := New(0)
 		assert.Equal(t, 1, engine.config.concurrency)
 
@@ -80,6 +88,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("creates engine with multiple options", func(t *testing.T) {
+		t.Parallel()
+
 		logger := zerolog.Nop()
 		host := "localhost"
 		port := 9222
@@ -97,6 +107,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("creates engine with no options", func(t *testing.T) {
+		t.Parallel()
+
 		engine := New(2)
 
 		assert.NotNil(t, engine)
@@ -106,6 +118,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("channels have correct buffer sizes", func(t *testing.T) {
+		t.Parallel()
+
 		concurrency := 10
 		engine := New(concurrency)
 
@@ -121,6 +135,8 @@ func TestOptions_CanBeComposed(t *testing.T) {
 	t.Parallel()
 
 	t.Run("options can be created and applied separately", func(t *testing.T) {
+		t.Parallel()
+
 		logger := zerolog.Nop()
 
 		opts := []Option{

@@ -95,12 +95,12 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func NewTestContext() (context.Context, context.CancelFunc) {
 	ctx := context.Background()
-	remoteUrl, useRemote := os.LookupEnv("virgo_CHROMEDP_REMOTE_URL")
+	remoteUrl, useRemote := os.LookupEnv("CHROMEDP_REMOTE_URL")
 	if useRemote {
 		return browser.StartRemote(ctx, remoteUrl)
 	}
 
-	_, useHeadfull := os.LookupEnv("virgo_HEADFULL")
+	_, useHeadfull := os.LookupEnv("CHROMEDP_HEADFULL")
 
 	return browser.StartLocal(ctx, useHeadfull)
 }

@@ -2,22 +2,13 @@ version: "2"
 linters:
   default: all
   disable:
-    # TODO: Get these linters enabled
-    - contextcheck
-    - gochecknoglobals
-    - godox
-    - ireturn
-    - tparallel
-    - paralleltest
-
+    - gomodguard # deprecated
     # These are disabled for now, primarily out of author preference
     - cyclop
     - depguard
     - embeddedstructfieldcheck
     - exhaustruct
-    - funlen
-    - lll
-    - gocognit
+    - godox
     - mnd
     - noinlineerr
     - testpackage
@@ -30,7 +21,28 @@ linters:
     rules:
       - path: engine/crawler.go
         linters:
+          - funlen
+          - gocognit
           - nestif
+      - path: internal/browser/profiles.go
+        linters:
+          - lll
+      - path: logger.go
+        linters:
+          - gochecknoglobals
+      - path: internal/pagetest/pagetest.go
+        linters:
+          - gosec
+      - path: "cmd/(.+)/main.go"
+        linters:
+          - funlen
+          - gochecknoglobals
+      - path: '(.+)_test\.go'
+        linters:
+          - funlen
+          - goconst
+          - lll
+          - paralleltest
 
   settings:
     tagliatelle:

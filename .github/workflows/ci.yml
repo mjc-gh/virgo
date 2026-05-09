@@ -44,7 +44,7 @@ jobs:
 
     - name: Set up tools
       env:
-        PISCES_CHROMEDP_REMOTE_URL: "http://localhost:9222"
+        CHROMEDP_REMOTE_URL: "http://localhost:9222"
       run: |
         go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 

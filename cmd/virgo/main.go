@@ -17,6 +17,8 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+const URL = "url"
+
 var ErrInvalidDeviceProperties = errors.New("invalid device properties")
 var ErrScreenShotFailed = errors.New("screenshot result error")
 
@@ -34,7 +36,9 @@ func main() {
 		&cli.IntFlag{Name: "concurrency", Aliases: []string{"c"}, Usage: "number of concurrent workers"},
 		&cli.IntFlag{Name: "remote-port", Usage: "remote DevTools port"},
 		&cli.StringFlag{Name: "remote-host", Usage: "remote DevTools host"},
-		&cli.StringFlag{Name: "device-type", Value: "desktop", Usage: "device type (desktop/mobile/tablet)", Action: validDeviceType},
+		&cli.StringFlag{
+			Name: "device-type", Value: "desktop", Usage: "device type (desktop/mobile/tablet)", Action: validDeviceType,
+		},
 		&cli.StringFlag{Name: "device-size", Value: "large", Usage: "device size preset", Action: validDeviceSize},
 		&cli.StringFlag{Name: "user-agent", Value: "chrome", Usage: "browser user-agent preset"},
 	}
@@ -53,7 +57,7 @@ func main() {
 				Name:  "screenshot",
 				Usage: "Screenshot one or more URLs",
 				Arguments: []cli.Argument{
-					&cli.StringArgs{Name: "url", Min: 1, Max: -1},
+					&cli.StringArgs{Name: URL, Min: 1, Max: -1},
 				},
 				Flags: append([]cli.Flag{
 					&cli.StringFlag{Name: "output-dir", Value: "tmp/", Aliases: []string{"o"}, Usage: "directory for screenshots"},
@@ -64,7 +68,7 @@ func main() {
 			}, {
 				Name:      "markdown",
 				Usage:     "Get the markdown content of a URL",
-				Arguments: []cli.Argument{&cli.StringArg{Name: "url"}},
+				Arguments: []cli.Argument{&cli.StringArg{Name: URL}},
 				Flags: append([]cli.Flag{
 					&cli.BoolFlag{Name: "include-images", Aliases: []string{"i"}, Usage: "include images in markdown output"},
 				}, baseFlags...),
@@ -78,7 +82,7 @@ func main() {
 			}, {
 				Name:      "plaintext",
 				Usage:     "Get the plantext content of a URL",
-				Arguments: []cli.Argument{&cli.StringArg{Name: "url"}},
+				Arguments: []cli.Argument{&cli.StringArg{Name: URL}},
 				Flags:     baseFlags,
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					return runTask(ctx, cmd, "plaintext", map[string]any{}, stdOutCallback)
@@ -100,12 +104,12 @@ func runTask(ctx context.Context, cmd *cli.Command, name string, params map[stri
 	deviceType := cmd.StringArg("device-type")
 	remoteHost := cmd.String("remote-host")
 	remotePort := cmd.Int("remote-port")
-	urls := cmd.StringArgs("url")
+	urls := cmd.StringArgs(URL)
 
 	opts := []engine.Option{engine.WithLogger(virgo.Logger())}
 
 	if len(urls) == 0 {
-		url := cmd.StringArg("url")
+		url := cmd.StringArg(URL)
 		urls = []string{url}
 	}
 
@@ -147,7 +151,7 @@ func stdOutCallback(cmd *cli.Command, e *engine.Engine) error {
 		}
 
 		logger.Debug().
-			Str("url", r.URL).
+			Str(URL, r.URL).
 			Str("duration", r.Elapsed.String()).
 			Msg("plaintext result")
 
@@ -186,7 +190,7 @@ func screenshotCallback(cmd *cli.Command, e *engine.Engine) error {
 		}
 
 		logger.Debug().
-			Str("url", r.URL).
+			Str(URL, r.URL).
 			Str("duration", r.Elapsed.String()).
 			Msg("screenshot result")
 
