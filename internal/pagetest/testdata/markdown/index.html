@@ -73,6 +73,36 @@
         <div class="hidden-opacity">This should not appear (opacity 0)</div>
 
         <p>Final visible paragraph.</p>
+
+        <!-- Nested lists -->
+        <h3>Nested Lists</h3>
+        <ul>
+            <li>Parent item
+                <ul>
+                    <li>Nested item 1</li>
+                    <li>Nested item 2</li>
+                </ul>
+            </li>
+        </ul>
+
+        <!-- Adjacent inline formatting -->
+        <h3>Adjacent Formatting</h3>
+        <p><strong>bold</strong><em>italic</em> text</p>
+
+        <!-- Multiple empty paragraphs (should collapse) -->
+        <h3>Empty Paragraph Collapse</h3>
+        <p></p>
+        <p></p>
+        <p>Content after empty paragraphs</p>
+
+        <!-- Complex blockquote -->
+        <h3>Complex Blockquote</h3>
+        <blockquote>
+            <p>Quote with <strong>formatting</strong></p>
+            <ul>
+                <li>List in quote</li>
+            </ul>
+        </blockquote>
     </main>
 
     <footer>

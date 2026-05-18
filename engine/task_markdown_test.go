@@ -128,3 +128,76 @@ func TestPerformMarkdownTaskIncludeImages(t *testing.T) {
 	// Test that images ARE included when param is set
 	assert.Contains(t, mr.Content, "![Test Image](/images/test.png)")
 }
+
+func TestPerformMarkdownTaskNestedLists(t *testing.T) {
+	// Test nested lists (ul within ul, ol within ul)
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Test that nested list items are properly formatted
+	assert.Contains(t, mr.Content, "- Parent item")
+	assert.Contains(t, mr.Content, "- Nested item 1")
+	assert.Contains(t, mr.Content, "- Nested item 2")
+}
+
+func TestPerformMarkdownTaskAdjacentInlineFormatting(t *testing.T) {
+	// Test adjacent inline formatting renders cleanly
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Adjacent bold and italic should render properly
+	assert.Contains(t, mr.Content, "**bold***italic*")
+}
+
+func TestPerformMarkdownTaskEmptyParagraphCollapse(t *testing.T) {
+	// Test that multiple empty paragraphs collapse to single blank line
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Verify that content after empty paragraphs is present
+	assert.Contains(t, mr.Content, "Content after empty paragraphs")
+	// Verify there are not excessive newlines (3+ newlines should not exist)
+	assert.NotContains(t, mr.Content, "\n\n\n")
+}
+
+func TestPerformMarkdownTaskBlockquoteWithNestedContent(t *testing.T) {
+	// Test complex blockquote with nested formatting and lists
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Blockquote with formatting
+	assert.Contains(t, mr.Content, "> ")
+	assert.Contains(t, mr.Content, "Quote with")
+}
