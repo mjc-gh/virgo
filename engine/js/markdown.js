@@ -297,23 +297,49 @@
     function renderAST(ast) {
         const lines = [];
         renderNode(ast, lines);
-        const result = lines.join('');
+        let result = lines.join('');
 
         // Final cleanup: collapse excessive newlines to max 2
-        return result.replace(/\n{3,}/g, '\n\n').trim();
+        result = result.replace(/\n{3,}/g, '\n\n').trim();
+        
+        // Post-processing: add spaces between adjacent links/images if they're on same line  
+        // This fixes cases where links are in separate paragraphs but rendered adjacent
+        // Pattern: )[ where ) closes a link/image and [ starts a new one
+        // Should become: ) [
+        // Only replace if there's NO space or newline between them
+        result = result.replace(/\)\[(?!\n)/g, ') [');
+        
+        return result;
     }
 
     /**
      * Ensures a block-level element starts on a new line
      * Block elements should be preceded by at least one newline character.
      * If the last character in the output buffer is not a newline, add newlines.
+     * Special case: if the previous block ended with a link/image and current block
+     * is only inline content (single link/image), add a space instead to keep them together.
      * @param {Array} lines - Accumulator for output lines
+     * @param {Object} nextNode - The next node to be rendered (if known)
      */
-    function ensureBlockStart(lines) {
+    function ensureBlockStart(lines, nextNode) {
         if (lines.length === 0) return;
         
         // Join all lines to get the current output
         const output = lines.join('');
+        
+        // Check if we should join inline content on the same line FIRST
+        // This takes precedence over normal block spacing
+        if (shouldKeepInlineTogether(output, nextNode)) {
+            // Remove trailing newlines from previous block
+            while (lines.length > 0 && (lines[lines.length - 1] === '\n' || lines[lines.length - 1] === '\n\n')) {
+                lines.pop();
+            }
+            // Add just a space instead of newlines
+            if (!output.endsWith(' ')) {
+                lines.push(' ');
+            }
+            return;
+        }
         
         // If output is empty or already ends with newline, no need to add more
         if (output.length === 0 || output.endsWith('\n\n')) {
@@ -330,11 +356,58 @@
     }
 
     /**
+     * Checks if we should keep adjacent inline blocks on the same line
+     * This applies when:
+     * - Previous block ends with a link '](...) or image '](...)' closing
+     * - Next block is a PARAGRAPH containing only inline content (link/image/text)
+     * @param {string} currentOutput - The rendered output so far
+     * @param {Object} nextNode - The next node to be rendered
+     * @returns {boolean} True if blocks should be kept on same line
+     */
+    function shouldKeepInlineTogether(currentOutput, nextNode) {
+        // Check 1: nextNode exists and is PARAGRAPH
+        if (!nextNode) {
+            return false;
+        }
+        if (nextNode.type !== NodeType.PARAGRAPH) {
+            return false;
+        }
+        
+        // Check 2: current output ends with )
+        const trimmedOutput = currentOutput.replace(/\n+$/, '');
+        const endsWithInlineElement = trimmedOutput.endsWith(')');
+        if (!endsWithInlineElement) {
+            return false;
+        }
+        
+        // Check 3: paragraph contains only inline elements
+        const hasChildren = nextNode.children && nextNode.children.length > 0;
+        if (!hasChildren) {
+            return false;
+        }
+        
+        const isOnlyInlineContent = nextNode.children.every(child => 
+            child.type === NodeType.LINK || 
+            child.type === NodeType.IMAGE ||
+            (child.type === NodeType.TEXT && child.content.trim().length === 0) ||
+            child.type === NodeType.STRONG ||
+            child.type === NodeType.EMPHASIS ||
+            child.type === NodeType.CODE ||
+            child.type === NodeType.UNDERLINE ||
+            child.type === NodeType.STRIKETHROUGH ||
+            child.type === NodeType.BREAK
+        );
+        
+        return isOnlyInlineContent;
+    }
+
+    /**
      * Renders a single AST node
      * @param {Object} node - The AST node to render
      * @param {Array} lines - Accumulator for output lines
+     * @param {Object} nextNode - The next sibling node (if any)
      */
-    function renderNode(node, lines) {
+    function renderNode(node, lines, nextNode) {
         if (!node) return;
 
         switch (node.type) {
@@ -343,14 +416,14 @@
                 break;
 
             case NodeType.HEADING:
-                ensureBlockStart(lines);
+                ensureBlockStart(lines, nextNode);
                 const hashes = '#'.repeat(node.attrs.level);
                 const headingText = renderInlineChildren(node.children);
                 lines.push(hashes + ' ' + headingText + '\n\n');
                 break;
 
             case NodeType.PARAGRAPH:
-                ensureBlockStart(lines);
+                ensureBlockStart(lines, nextNode);
                 const paraText = renderInlineChildren(node.children);
                 if (paraText.trim().length > 0) {
                     lines.push(paraText + '\n\n');
@@ -407,13 +480,13 @@
                 break;
 
             case NodeType.CODE_BLOCK:
-                ensureBlockStart(lines);
+                ensureBlockStart(lines, nextNode);
                 const lang = node.attrs.lang || '';
                 lines.push('```' + lang + '\n' + node.content + '\n```\n\n');
                 break;
 
             case NodeType.LIST:
-                ensureBlockStart(lines);
+                ensureBlockStart(lines, nextNode);
                 renderList(node, lines);
                 break;
 
@@ -422,7 +495,7 @@
                 break;
 
             case NodeType.BLOCKQUOTE:
-                ensureBlockStart(lines);
+                ensureBlockStart(lines, nextNode);
                 const quoteLines = [];
                 renderChildren(node.children, quoteLines);
                 const quoteText = quoteLines.join('').trim();
@@ -442,7 +515,7 @@
                 break;
 
             case NodeType.RULE:
-                ensureBlockStart(lines);
+                ensureBlockStart(lines, nextNode);
                 lines.push('---\n\n');
                 break;
         }
@@ -509,52 +582,137 @@
      */
     function renderInlineChildren(children) {
         const result = [];
-        for (const child of children) {
+
+        // Helper to check if we need a leading space before the next element
+        function needsLeadingSpace() {
+            if (result.length === 0) return false;
+            const last = result[result.length - 1];
+            return last.length > 0 && !last.endsWith(' ') && !last.endsWith('\n');
+        }
+
+        // Helper to check if text starts with punctuation that should not have space before it
+        function textStartsWithPunctuation(text) {
+            if (!text || text.length === 0) return false;
+            const punctuation = ['.', ',', '!', '?', ';', ':', ')', ']', '}'];
+            // Check after trimming leading whitespace
+            const trimmed = text.replace(/^\s+/, '');
+            return trimmed.length > 0 && punctuation.includes(trimmed[0]);
+        }
+
+        // Helper to check if a node starts with punctuation
+        function nodeStartsWithPunctuation(node) {
+            if (!node) return false;
+            if (node.type === NodeType.TEXT) {
+                // For text nodes, check the raw content (with leading whitespace trimmed)
+                return textStartsWithPunctuation(node.content);
+            }
+            // For other types, recursively check their children
+            if (node.children && node.children.length > 0) {
+                return nodeStartsWithPunctuation(node.children[0]);
+            }
+            return false;
+        }
+
+        // Helper to check if next sibling needs a separating space
+        function needsTrailingSpace(nextChild) {
+            if (!nextChild) return false;
+            // Space needed before text or another inline element, but not if it starts with punctuation
+            const needsSpace = nextChild.type === NodeType.TEXT ||
+                   nextChild.type === NodeType.LINK ||
+                   nextChild.type === NodeType.STRONG ||
+                   nextChild.type === NodeType.EMPHASIS ||
+                   nextChild.type === NodeType.UNDERLINE ||
+                   nextChild.type === NodeType.STRIKETHROUGH ||
+                   nextChild.type === NodeType.CODE ||
+                   nextChild.type === NodeType.IMAGE;
+            
+            if (!needsSpace) return false;
+            // Don't add space if next element starts with punctuation
+            return !nodeStartsWithPunctuation(nextChild);
+        }
+
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i];
+            const nextChild = children[i + 1];
+            let contentAdded = false;
+
             if (child.type === NodeType.TEXT) {
                 const cleanedText = child.content.replace(/\s+/g, ' ').trim();
                 if (cleanedText.length > 0) {
-                    if (result.length > 0 && !result[result.length - 1].endsWith(' ')) {
+                    if (needsLeadingSpace()) {
                         result.push(' ');
                     }
                     result.push(cleanedText);
+                    contentAdded = true;
                 }
             } else if (child.type === NodeType.LINK) {
                 const linkText = renderInlineChildren(child.children);
                 if (linkText.trim().length > 0) {
-                    if (result.length > 0 && !result[result.length - 1].endsWith(' ')) {
+                    if (needsLeadingSpace()) {
                         result.push(' ');
                     }
                     result.push('[' + linkText + '](' + child.attrs.href + ')');
+                    contentAdded = true;
                 }
             } else if (child.type === NodeType.STRONG) {
                 const strongText = renderInlineChildren(child.children);
                 if (strongText.trim().length > 0) {
+                    if (needsLeadingSpace()) {
+                        result.push(' ');
+                    }
                     result.push('**' + strongText + '**');
+                    contentAdded = true;
                 }
             } else if (child.type === NodeType.EMPHASIS) {
                 const emphasisText = renderInlineChildren(child.children);
                 if (emphasisText.trim().length > 0) {
+                    if (needsLeadingSpace()) {
+                        result.push(' ');
+                    }
                     result.push('*' + emphasisText + '*');
+                    contentAdded = true;
                 }
             } else if (child.type === NodeType.UNDERLINE) {
                 const underlineText = renderInlineChildren(child.children);
                 if (underlineText.trim().length > 0) {
+                    if (needsLeadingSpace()) {
+                        result.push(' ');
+                    }
                     result.push('<u>' + underlineText + '</u>');
+                    contentAdded = true;
                 }
             } else if (child.type === NodeType.STRIKETHROUGH) {
                 const strikeText = renderInlineChildren(child.children);
                 if (strikeText.trim().length > 0) {
+                    if (needsLeadingSpace()) {
+                        result.push(' ');
+                    }
                     result.push('~~' + strikeText + '~~');
+                    contentAdded = true;
                 }
             } else if (child.type === NodeType.CODE) {
                 const codeText = child.content.replace(/\s+/g, ' ').trim();
                 if (codeText.length > 0) {
+                    if (needsLeadingSpace()) {
+                        result.push(' ');
+                    }
                     result.push('`' + codeText + '`');
+                    contentAdded = true;
                 }
             } else if (child.type === NodeType.IMAGE) {
+                if (needsLeadingSpace()) {
+                    result.push(' ');
+                }
                 result.push('![' + child.attrs.alt + '](' + child.attrs.src + ')');
+                contentAdded = true;
             } else if (child.type === NodeType.BREAK) {
                 result.push('\n');
+                contentAdded = true;
+            }
+
+            // After adding content, check if we need trailing space for next element
+            if (contentAdded && nextChild && needsTrailingSpace(nextChild)) {
+                result.push(' ');
             }
         }
         return result.join('');
@@ -565,9 +723,17 @@
      * @param {Array} children - Array of child nodes
      * @param {Array} lines - Accumulator for output lines
      */
+    /**
+     * Renders children nodes (block-level, for use at document level)
+     * Tracks next sibling to enable look-ahead for spacing decisions
+     * @param {Array} children - Array of child nodes
+     * @param {Array} lines - Accumulator for output lines
+     */
     function renderChildren(children, lines) {
-        for (const child of children) {
-            renderNode(child, lines);
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i];
+            const nextChild = children[i + 1];
+            renderNode(child, lines, nextChild);
         }
     }
 

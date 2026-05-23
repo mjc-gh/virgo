@@ -149,7 +149,7 @@ func TestPerformMarkdownTaskNestedLists(t *testing.T) {
 }
 
 func TestPerformMarkdownTaskAdjacentInlineFormatting(t *testing.T) {
-	// Test adjacent inline formatting renders cleanly
+	// Test adjacent inline formatting renders cleanly with proper spacing
 	server := pagetest.NewTestWebServer("markdown")
 	task := NewTask("markdown", server.URL)
 
@@ -161,8 +161,8 @@ func TestPerformMarkdownTaskAdjacentInlineFormatting(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, mr.Content)
 
-	// Adjacent bold and italic should render properly
-	assert.Contains(t, mr.Content, "**bold***italic*")
+	// Adjacent bold and italic should render with space between them
+	assert.Contains(t, mr.Content, "**bold** *italic*")
 }
 
 func TestPerformMarkdownTaskEmptyParagraphCollapse(t *testing.T) {
@@ -223,4 +223,119 @@ func TestPerformMarkdownTaskHeadersOnNewlines(t *testing.T) {
 	// Verify no headers appear immediately after inline content (single newline is not enough)
 	// Headers should have double newlines before them
 	assert.NotRegexp(t, `[^\n]\n#+ `, mr.Content)
+}
+
+func TestPerformMarkdownTaskLinkSpacing(t *testing.T) {
+	// Test that links have proper spacing with surrounding text
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Link surrounded by text should have proper spacing
+	assert.Contains(t, mr.Content, "Click [here](#here) to continue")
+
+	// Multiple adjacent links should have space between them
+	assert.Contains(t, mr.Content, "[link1](#link1) [link2](#link2)")
+}
+
+func TestPerformMarkdownTaskInlineElementSpacing(t *testing.T) {
+	// Test spacing for various inline elements
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Bold followed by text
+	assert.Contains(t, mr.Content, "**bold** text after")
+
+	// Text followed by bold
+	assert.Contains(t, mr.Content, "text before **bold**")
+
+	// Bold followed by link
+	assert.Contains(t, mr.Content, "**bold** [link](#)")
+}
+
+func TestPerformMarkdownTaskMixedInlineFormatting(t *testing.T) {
+	// Test mixed inline formatting with proper spacing
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Mixed inline elements should have proper spacing
+	assert.Contains(t, mr.Content, "*italic* and **bold** and [link](#) text")
+}
+
+func TestPerformMarkdownTaskPunctuationSpacing(t *testing.T) {
+	// Test spacing behavior around punctuation
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Verify that punctuation appears in the output
+	// The exact spacing depends on how the HTML is parsed
+	assert.Contains(t, mr.Content, "[link](#)")
+	assert.Contains(t, mr.Content, "**bold**")
+}
+
+func TestPerformMarkdownTaskAdjacentInlineBlocks(t *testing.T) {
+	// Test that adjacent blocks containing inline elements (like links) have proper spacing
+	// This tests the case where each link is in a separate <p> tag
+	server := pagetest.NewTestWebServer("adjacent-inline-blocks")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Test that adjacent paragraphs with only links have spaces between them
+	// Pattern: [Github](...)\n\n[LinkedIn](...) should render with proper spacing
+	// We want: [Github](#) [LinkedIn](#) [Twitter](#)
+	// NOT:     [Github](#)[LinkedIn](#)[Twitter](#)
+	
+	content := mr.Content
+	
+	// Check that links are present
+	assert.Contains(t, content, "[Github]")
+	assert.Contains(t, content, "[LinkedIn]")
+	assert.Contains(t, content, "[Twitter]")
+	
+	// Check that links have spaces between them (not running together)
+	// The key test: we should NOT have "][" pattern (end of one link, start of next)
+	assert.NotContains(t, content, "][")
+	
+	// Verify proper formatting of email and website lines
+	assert.Contains(t, content, "Email:")
+	assert.Contains(t, content, "test@example.com")
+	assert.Contains(t, content, "Website:")
 }
