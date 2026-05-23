@@ -212,6 +212,60 @@ func TestTaskIntParam(t *testing.T) {
 	}
 }
 
+func TestTaskStringParam(t *testing.T) {
+	tests := []struct {
+		name        string
+		params      map[string]any
+		key         string
+		defaultVal  string
+		expectedVal string
+	}{
+		{
+			name:        "existing string parameter",
+			params:      map[string]any{"search": "hello"},
+			key:         "search",
+			defaultVal:  "default",
+			expectedVal: "hello",
+		},
+		{
+			name:        "missing parameter returns default",
+			params:      map[string]any{},
+			key:         "search",
+			defaultVal:  "default",
+			expectedVal: "default",
+		},
+		{
+			name:        "non-string parameter returns default",
+			params:      map[string]any{"search": 123},
+			key:         "search",
+			defaultVal:  "default",
+			expectedVal: "default",
+		},
+		{
+			name:        "empty string parameter",
+			params:      map[string]any{"search": ""},
+			key:         "search",
+			defaultVal:  "default",
+			expectedVal: "",
+		},
+		{
+			name:        "string parameter with special characters",
+			params:      map[string]any{"search": "hello@world!#$%"},
+			key:         "search",
+			defaultVal:  "default",
+			expectedVal: "hello@world!#$%",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			task := NewTask("test", "http://example.com", WithParams(tt.params))
+			result := task.StringParam(tt.key, tt.defaultVal)
+			assert.Equal(t, tt.expectedVal, result)
+		})
+	}
+}
+
 func TestPerformTaskUnknownType(t *testing.T) {
 	t.Parallel()
 

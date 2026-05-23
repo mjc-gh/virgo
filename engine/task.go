@@ -108,6 +108,21 @@ func (t Task) BoolParam(key string, defaultVal bool) bool {
 	return n
 }
 
+// StringParam will get a task parameter with the given key as a string value.
+func (t Task) StringParam(key string, defaultVal string) string {
+	val, ok := t.params[key]
+	if !ok {
+		return defaultVal
+	}
+
+	s, ok := val.(string)
+	if !ok {
+		return defaultVal
+	}
+
+	return s
+}
+
 func (t Task) Result() Result {
 	return <-t.resultCh
 }
@@ -170,6 +185,14 @@ func performTask(ctx context.Context, task *Task, logger *zerolog.Logger) Result
 
 	case "screenshot":
 		payload, err := performScreenshotTask(ctx, task, &tlog)
+		if err != nil {
+			return newErrorResult(task, err)
+		}
+
+		result.Result = &payload
+
+	case "links":
+		payload, err := performLinksTask(ctx, task, &tlog)
 		if err != nil {
 			return newErrorResult(task, err)
 		}

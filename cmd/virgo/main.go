@@ -87,6 +87,25 @@ func main() {
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					return runTask(ctx, cmd, "plaintext", map[string]any{}, stdOutCallback)
 				},
+			}, {
+				Name:      "links",
+				Usage:     "Search for links on a page using fuzzy matching",
+				Arguments: []cli.Argument{&cli.StringArg{Name: URL}},
+				Flags: append([]cli.Flag{
+					&cli.StringFlag{Name: "search", Aliases: []string{"s"}, Usage: "search term for fuzzy matching"},
+					&cli.IntFlag{
+						Name: "threshold", Aliases: []string{"t"}, Value: 3,
+						Usage: "fuzzy match threshold (0=exact, higher=fuzzier)",
+					},
+				}, baseFlags...),
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					params := map[string]any{
+						"search":    cmd.String("search"),
+						"threshold": cmd.Int("threshold"),
+					}
+
+					return runTask(ctx, cmd, "links", params, stdOutCallback)
+				},
 			},
 		},
 	}
@@ -159,6 +178,8 @@ func stdOutCallback(cmd *cli.Command, e *engine.Engine) error {
 		case *engine.MarkdownResult:
 			out = v.Content
 		case *engine.PlaintextResult:
+			out = v.Content
+		case *engine.LinksResult:
 			out = v.Content
 		default:
 			logger.Warn().Msg("plaintext result type assertion failed")
