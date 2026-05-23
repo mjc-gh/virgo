@@ -322,18 +322,18 @@ func TestPerformMarkdownTaskAdjacentInlineBlocks(t *testing.T) {
 	// Pattern: [Github](...)\n\n[LinkedIn](...) should render with proper spacing
 	// We want: [Github](#) [LinkedIn](#) [Twitter](#)
 	// NOT:     [Github](#)[LinkedIn](#)[Twitter](#)
-	
+
 	content := mr.Content
-	
+
 	// Check that links are present
 	assert.Contains(t, content, "[Github]")
 	assert.Contains(t, content, "[LinkedIn]")
 	assert.Contains(t, content, "[Twitter]")
-	
+
 	// Check that links have spaces between them (not running together)
 	// The key test: we should NOT have "][" pattern (end of one link, start of next)
 	assert.NotContains(t, content, "][")
-	
+
 	// Verify proper formatting of email and website lines
 	assert.Contains(t, content, "Email:")
 	assert.Contains(t, content, "test@example.com")

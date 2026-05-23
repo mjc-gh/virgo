@@ -171,19 +171,25 @@ func TestExtractNodeText(t *testing.T) {
 	tests := []struct {
 		name     string
 		children []*struct {
-			NodeType   int
-			NodeValue  string
+			NodeType  int
+			NodeValue string
 		}
 		expected string
 	}{
 		{
-			name:     "empty children",
-			children: []*struct{ NodeType int; NodeValue string }{},
+			name: "empty children",
+			children: []*struct {
+				NodeType  int
+				NodeValue string
+			}{},
 			expected: "",
 		},
 		{
 			name: "text node",
-			children: []*struct{ NodeType int; NodeValue string }{
+			children: []*struct {
+				NodeType  int
+				NodeValue string
+			}{
 				{NodeType: 3, NodeValue: "Hello"},
 			},
 			expected: "Hello",
