@@ -34,7 +34,15 @@ go test -v ./engine -run TestNewTask
 go test -v ./... -run TestPerformTaskUnknownType
 
 # Run tests matching a pattern
-go test -v ./... -run "TestTask.*"z
+go test -v ./... -run "TestTask.*"
+
+# Running tests with remote Chrome DevTools (required for browser tests)
+CHROMEDP_REMOTE_URL="http://127.0.0.1:9222" make test
+CHROMEDP_REMOTE_URL="http://127.0.0.1:9222" go test -v ./...
+
+# To run with Docker headless-shell:
+docker run -d -p 9222:9222 --rm chromedp/headless-shell
+CHROMEDP_REMOTE_URL="http://127.0.0.1:9222" make test
 ```
 
 ## Lint Commands
@@ -140,10 +148,56 @@ require.Error(t, err)
 
 3. **Mark parallel-safe tests** with `t.Parallel()`
 
-4. **Use test utilities** from `internal/virgotest/`:
+4. **Use test utilities** from `internal/pagetest/`:
    - `NewTestWebServer()` - HTTP test server with embedded testdata
    - `NewTestContext()` - Browser context (respects env vars for remote/headfull)
    - `FindByID[T]()` - Generic helper for finding structs by ID
+
+### Test Fixtures
+
+HTML test fixtures are stored in `internal/pagetest/testdata/[fixture-name]/` and loaded via `pagetest.NewTestWebServer("[fixture-name]")`.
+
+When adding new test cases:
+1. Add a new `<div>` or `<section>` to the appropriate fixture file (e.g., `index.html`)
+2. Include a descriptive comment explaining what edge case it tests
+3. Reference the fixture in your test with `pagetest.NewTestWebServer()`
+4. Use assertions to validate the specific behavior being tested
+
+Example: Testing inline content followed by a block element:
+```html
+<!-- Inline content immediately before block element -->
+<h3>Inline to Block Transition</h3>
+<div>
+    <span>text before heading</span>
+    <h1>Inline to Block Test</h1>
+</div>
+```
+
+## Git Commit Guidelines
+
+Follow semantic commit format with issue references:
+
+**Format:** `<type>: <subject>`
+
+**Types:**
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `refactor:` - Code refactoring
+- `test:` - Test additions or updates
+- `docs:` - Documentation changes
+- `chore:` - Maintenance tasks
+- `style:` - Formatting changes
+
+**Issue References:**
+- Fixes an issue: `Fixes #123` or `fixes #123`
+- Closes an issue: `Closes #123` or `closes #123`
+
+**Examples:**
+```
+fix: ensure headers always start on new lines (fixes #4)
+feat: add links task type with fuzzy search capability
+refactor: implement AST-based markdown conversion
+```
 
 ## Key Dependencies
 

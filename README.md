@@ -18,10 +18,10 @@ VERSION:
    0.0.0
 
 COMMANDS:
-   screenshot  Screenshot one or more URLs
-   markdown    Get the markdown content of a URL
-   plaintext   Get the plantext content of a URL
-   help, h     Shows a list of commands or help for one command
+    screenshot  Screenshot one or more URLs
+    markdown    Get the markdown content of a URL
+    plaintext   Get the plaintext content of a URL
+    help, h     Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --help, -h     show help
