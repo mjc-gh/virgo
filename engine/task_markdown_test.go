@@ -201,3 +201,26 @@ func TestPerformMarkdownTaskBlockquoteWithNestedContent(t *testing.T) {
 	assert.Contains(t, mr.Content, "> ")
 	assert.Contains(t, mr.Content, "Quote with")
 }
+
+func TestPerformMarkdownTaskHeadersOnNewlines(t *testing.T) {
+	// Test that headers are always preceded by a newline (except at start)
+	// This tests that inline content followed by a header has proper separation
+	server := pagetest.NewTestWebServer("markdown")
+	task := NewTask("markdown", server.URL)
+
+	ctx, cancel := pagetest.NewTestContext()
+	defer cancel()
+
+	mr, err := performMarkdownTask(ctx, &task, virgo.Logger())
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, mr.Content)
+
+	// Headers must always be preceded by a newline (except at start)
+	// This tests that inline content followed by a header has proper separation
+	assert.Contains(t, mr.Content, "text before heading\n\n# Inline to Block Test")
+
+	// Verify no headers appear immediately after inline content (single newline is not enough)
+	// Headers should have double newlines before them
+	assert.NotRegexp(t, `[^\n]\n#+ `, mr.Content)
+}

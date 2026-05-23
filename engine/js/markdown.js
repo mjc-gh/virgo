@@ -304,6 +304,32 @@
     }
 
     /**
+     * Ensures a block-level element starts on a new line
+     * Block elements should be preceded by at least one newline character.
+     * If the last character in the output buffer is not a newline, add newlines.
+     * @param {Array} lines - Accumulator for output lines
+     */
+    function ensureBlockStart(lines) {
+        if (lines.length === 0) return;
+        
+        // Join all lines to get the current output
+        const output = lines.join('');
+        
+        // If output is empty or already ends with newline, no need to add more
+        if (output.length === 0 || output.endsWith('\n\n')) {
+            return;
+        }
+        
+        // If output ends with one newline, add one more for proper spacing
+        if (output.endsWith('\n')) {
+            lines.push('\n');
+        } else {
+            // If output doesn't end with newline, add two newlines
+            lines.push('\n\n');
+        }
+    }
+
+    /**
      * Renders a single AST node
      * @param {Object} node - The AST node to render
      * @param {Array} lines - Accumulator for output lines
@@ -317,12 +343,14 @@
                 break;
 
             case NodeType.HEADING:
+                ensureBlockStart(lines);
                 const hashes = '#'.repeat(node.attrs.level);
                 const headingText = renderInlineChildren(node.children);
                 lines.push(hashes + ' ' + headingText + '\n\n');
                 break;
 
             case NodeType.PARAGRAPH:
+                ensureBlockStart(lines);
                 const paraText = renderInlineChildren(node.children);
                 if (paraText.trim().length > 0) {
                     lines.push(paraText + '\n\n');
@@ -379,11 +407,13 @@
                 break;
 
             case NodeType.CODE_BLOCK:
+                ensureBlockStart(lines);
                 const lang = node.attrs.lang || '';
                 lines.push('```' + lang + '\n' + node.content + '\n```\n\n');
                 break;
 
             case NodeType.LIST:
+                ensureBlockStart(lines);
                 renderList(node, lines);
                 break;
 
@@ -392,6 +422,7 @@
                 break;
 
             case NodeType.BLOCKQUOTE:
+                ensureBlockStart(lines);
                 const quoteLines = [];
                 renderChildren(node.children, quoteLines);
                 const quoteText = quoteLines.join('').trim();
@@ -411,6 +442,7 @@
                 break;
 
             case NodeType.RULE:
+                ensureBlockStart(lines);
                 lines.push('---\n\n');
                 break;
         }
