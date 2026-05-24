@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -19,6 +18,7 @@ import (
 
 const URL = "url"
 
+var ErrCmdFailed = errors.New("command failed")
 var ErrInvalidDeviceProperties = errors.New("invalid device properties")
 var ErrScreenShotFailed = errors.New("screenshot result error")
 
@@ -113,7 +113,7 @@ func main() {
 
 	err := cmd.Run(context.Background(), os.Args)
 	if err != nil {
-		log.Fatal(err)
+		os.Exit(1)
 	}
 }
 
@@ -161,10 +161,14 @@ func runTask(ctx context.Context, cmd *cli.Command, name string, params map[stri
 }
 
 func stdOutCallback(cmd *cli.Command, e *engine.Engine) error {
+	var anyErr bool
+
 	for r := range e.Results() {
 		var out string
 
 		if r.Error != nil {
+			anyErr = true
+
 			logger.Error().Msgf("result error: %v", r.Error)
 
 			continue
@@ -192,6 +196,10 @@ func stdOutCallback(cmd *cli.Command, e *engine.Engine) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if anyErr {
+		return ErrCmdFailed
 	}
 
 	return nil
