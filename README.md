@@ -4,6 +4,14 @@ Turn web pages into Markdown using the Chrome DevTools Protocol
 
 ![Demo GIF](./virgo.gif)
 
+## Install
+
+You can install the primary CLI utility using `go install`:
+
+```
+go install github.com/mjc-gh/virgo/cmd/virgo@latest
+```
+
 ## Usage
 
 ```
