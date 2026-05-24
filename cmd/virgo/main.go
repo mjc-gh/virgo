@@ -32,7 +32,7 @@ type taskCallbackFn = func(*cli.Command, *engine.Engine) error
 func main() {
 	baseFlags := []cli.Flag{
 		&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Usage: "enable debug logging"},
-		&cli.BoolFlag{Name: "json-logs", Usage: "output logs as JSON"},
+		&cli.BoolFlag{Name: "json-logs", Value: false, Usage: "output logs as JSON"},
 		&cli.BoolFlag{Name: "headfull", Aliases: []string{"H"}, Usage: "run browser in headfull mode"},
 		&cli.IntFlag{Name: "concurrency", Aliases: []string{"c"}, Usage: "number of concurrent workers"},
 		&cli.IntFlag{Name: "remote-port", Usage: "remote DevTools port"},
