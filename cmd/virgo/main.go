@@ -165,7 +165,7 @@ func stdOutCallback(cmd *cli.Command, e *engine.Engine) error {
 		var out string
 
 		if r.Error != nil {
-			logger.Warn().Msgf("result error: %v", r.Error)
+			logger.Error().Msgf("result error: %v", r.Error)
 
 			continue
 		}
