@@ -1,6 +1,7 @@
 package virgo
 
 import (
+	"io"
 	"os"
 	"slices"
 	"time"
@@ -10,29 +11,43 @@ import (
 
 var logger *zerolog.Logger
 
-func SetupLogger(debug bool) *zerolog.Logger {
+func SetupLogger(debug bool, jsonLogs bool) *zerolog.Logger {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	// Create a multi-level writer that routes logs to stdout/stderr based on level
-	writer := zerolog.MultiLevelWriter(
-		SpecificLevelWriter{
-			Writer: zerolog.ConsoleWriter{Out: os.Stdout},
-			Levels: []zerolog.Level{
-				zerolog.DebugLevel, zerolog.InfoLevel, zerolog.WarnLevel,
+	var writer io.Writer
+	if jsonLogs {
+		// JSON logs output to stdout
+		writer = os.Stdout
+	} else {
+		// Create a multi-level writer that routes logs to stdout/stderr based on level
+		writer = zerolog.MultiLevelWriter(
+			SpecificLevelWriter{
+				Writer: zerolog.ConsoleWriter{Out: os.Stdout},
+				Levels: []zerolog.Level{
+					zerolog.DebugLevel, zerolog.InfoLevel, zerolog.WarnLevel,
+				},
 			},
-		},
-		SpecificLevelWriter{
-			Writer: zerolog.ConsoleWriter{Out: os.Stderr},
-			Levels: []zerolog.Level{
-				zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel,
+			SpecificLevelWriter{
+				Writer: zerolog.ConsoleWriter{Out: os.Stderr},
+				Levels: []zerolog.Level{
+					zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel,
+				},
 			},
-		},
-	)
+		)
+	}
 
-	l := zerolog.New(writer).With().Timestamp().
+	l := buildLogger(writer)
+	logger = &l
+
+	return logger
+}
+
+// buildLogger creates a logger with common configuration.
+func buildLogger(w io.Writer) zerolog.Logger {
+	return zerolog.New(w).With().Timestamp().
 		Str("source", "go").
 		Str("service", "virgo").
 		Logger().
@@ -50,10 +65,6 @@ func SetupLogger(debug bool) *zerolog.Logger {
 				},
 			},
 		)
-
-	logger = &l
-
-	return logger
 }
 
 // SpecificLevelWriter is a LevelWriter that only writes logs for specific levels.

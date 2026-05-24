@@ -16,14 +16,14 @@ func TestLogger(t *testing.T) {
 func TestSetupLogger(t *testing.T) {
 	logger = nil
 
-	l := SetupLogger(false)
+	l := SetupLogger(false, false)
 
 	assert.NotNil(t, logger)
 	assert.Equal(t, l, Logger())
 }
 
 func TestSetupLoggerWithDebug(t *testing.T) {
-	_ = SetupLogger(true)
+	_ = SetupLogger(true, false)
 
 	assert.Equal(t, zerolog.Level(0), zerolog.GlobalLevel())
 }

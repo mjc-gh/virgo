@@ -32,6 +32,7 @@ type taskCallbackFn = func(*cli.Command, *engine.Engine) error
 func main() {
 	baseFlags := []cli.Flag{
 		&cli.BoolFlag{Name: "debug", Aliases: []string{"d"}, Usage: "enable debug logging"},
+		&cli.BoolFlag{Name: "json-logs", Usage: "output logs as JSON"},
 		&cli.BoolFlag{Name: "headfull", Aliases: []string{"H"}, Usage: "run browser in headfull mode"},
 		&cli.IntFlag{Name: "concurrency", Aliases: []string{"c"}, Usage: "number of concurrent workers"},
 		&cli.IntFlag{Name: "remote-port", Usage: "remote DevTools port"},
@@ -117,7 +118,7 @@ func main() {
 }
 
 func runTask(ctx context.Context, cmd *cli.Command, name string, params map[string]any, callback taskCallbackFn) error {
-	logger = virgo.SetupLogger(cmd.Bool("debug"))
+	logger = virgo.SetupLogger(cmd.Bool("debug"), cmd.Bool("json-logs"))
 
 	deviceSize := cmd.StringArg("device-size")
 	deviceType := cmd.StringArg("device-type")
