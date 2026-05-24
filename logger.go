@@ -17,27 +17,34 @@ func SetupLogger(debug bool, jsonLogs bool) *zerolog.Logger {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	var writer io.Writer
+	var stdoutWriter io.Writer
+	var stderrWriter io.Writer
+
 	if jsonLogs {
-		// JSON logs output to stdout
-		writer = os.Stdout
+		// JSON format: use raw stdout/stderr
+		stdoutWriter = os.Stdout
+		stderrWriter = os.Stderr
 	} else {
-		// Create a multi-level writer that routes logs to stdout/stderr based on level
-		writer = zerolog.MultiLevelWriter(
-			SpecificLevelWriter{
-				Writer: zerolog.ConsoleWriter{Out: os.Stdout},
-				Levels: []zerolog.Level{
-					zerolog.DebugLevel, zerolog.InfoLevel, zerolog.WarnLevel,
-				},
-			},
-			SpecificLevelWriter{
-				Writer: zerolog.ConsoleWriter{Out: os.Stderr},
-				Levels: []zerolog.Level{
-					zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel,
-				},
-			},
-		)
+		// Human-readable format: use ConsoleWriter
+		stdoutWriter = zerolog.ConsoleWriter{Out: os.Stdout}
+		stderrWriter = zerolog.ConsoleWriter{Out: os.Stderr}
 	}
+
+	// Create a multi-level writer that always routes based on level
+	writer := zerolog.MultiLevelWriter(
+		SpecificLevelWriter{
+			Writer: stdoutWriter,
+			Levels: []zerolog.Level{
+				zerolog.DebugLevel, zerolog.InfoLevel, zerolog.WarnLevel,
+			},
+		},
+		SpecificLevelWriter{
+			Writer: stderrWriter,
+			Levels: []zerolog.Level{
+				zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel,
+			},
+		},
+	)
 
 	l := buildLogger(writer)
 	logger = &l
@@ -69,11 +76,11 @@ func buildLogger(w io.Writer) zerolog.Logger {
 
 // SpecificLevelWriter is a LevelWriter that only writes logs for specific levels.
 type SpecificLevelWriter struct {
-	Writer zerolog.ConsoleWriter
+	Writer io.Writer
 	Levels []zerolog.Level
 }
 
-// Write implements io.Writer and writes using the console writer.
+// Write implements io.Writer and writes using the configured writer.
 func (w SpecificLevelWriter) Write(p []byte) (int, error) {
 	return w.Writer.Write(p)
 }
