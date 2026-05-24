@@ -2,6 +2,7 @@ package virgo
 
 import (
 	"os"
+	"slices"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -15,7 +16,23 @@ func SetupLogger(debug bool) *zerolog.Logger {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	l := zerolog.New(os.Stdout).With().Timestamp().
+	// Create a multi-level writer that routes logs to stdout/stderr based on level
+	writer := zerolog.MultiLevelWriter(
+		SpecificLevelWriter{
+			Writer: zerolog.ConsoleWriter{Out: os.Stdout},
+			Levels: []zerolog.Level{
+				zerolog.DebugLevel, zerolog.InfoLevel, zerolog.WarnLevel,
+			},
+		},
+		SpecificLevelWriter{
+			Writer: zerolog.ConsoleWriter{Out: os.Stderr},
+			Levels: []zerolog.Level{
+				zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel,
+			},
+		},
+	)
+
+	l := zerolog.New(writer).With().Timestamp().
 		Str("source", "go").
 		Str("service", "virgo").
 		Logger().
@@ -37,6 +54,26 @@ func SetupLogger(debug bool) *zerolog.Logger {
 	logger = &l
 
 	return logger
+}
+
+// SpecificLevelWriter is a LevelWriter that only writes logs for specific levels.
+type SpecificLevelWriter struct {
+	Writer zerolog.ConsoleWriter
+	Levels []zerolog.Level
+}
+
+// Write implements io.Writer and writes using the console writer.
+func (w SpecificLevelWriter) Write(p []byte) (int, error) {
+	return w.Writer.Write(p)
+}
+
+// WriteLevel writes the log message if the level matches one of the configured levels.
+func (w SpecificLevelWriter) WriteLevel(level zerolog.Level, p []byte) (int, error) {
+	if slices.Contains(w.Levels, level) {
+		return w.Writer.Write(p)
+	}
+
+	return len(p), nil
 }
 
 func Logger() *zerolog.Logger {
