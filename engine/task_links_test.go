@@ -199,8 +199,8 @@ func TestExtractNodeText(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// This test verifies JavaScript extraction is used instead of DOM node parsing
-			// The extractLinksJS constant provides the implementation
-			assert.NotEmpty(t, extractLinksJS)
+			// The linksJS embedded variable provides the implementation
+			assert.NotEmpty(t, linksJS)
 		})
 	}
 }

@@ -3,11 +3,14 @@ package engine
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
+	"github.com/chromedp/chromedp"
 	"github.com/mjc-gh/virgo/internal/browser"
 	"github.com/rs/zerolog"
 )
@@ -129,4 +132,62 @@ func (e *Engine) Results() <-chan Result {
 
 func (e *Engine) Add(t Task) {
 	e.tasks <- t
+}
+
+// waitForHTMLStabilization polls the HTML content until it stabilizes or timeout occurs.
+// It considers content stabilized when the length change between consecutive checks
+// is less than 1%. It polls for up to 5 seconds before returning regardless of stability.
+func waitForHTMLStabilization(ctx context.Context, logger *zerolog.Logger) error {
+	const (
+		pollInterval       = 200 * time.Millisecond
+		maxWaitTime        = 5 * time.Second
+		stabilityThreshold = 0.01 // 1%
+	)
+
+	startTime := time.Now()
+	var previousLength int
+
+	for {
+		var htmlContent string
+		err := chromedp.Run(ctx,
+			chromedp.Evaluate(`document.documentElement.outerHTML`, &htmlContent),
+		)
+		if err != nil {
+			logger.Warn().Err(err).Msg("failed to evaluate HTML content during stabilization check")
+
+			return err
+		}
+
+		currentLength := len(htmlContent)
+
+		// On first check, just record the length
+		if previousLength == 0 {
+			previousLength = currentLength
+		} else {
+			// Calculate percentage change
+			change := float64(currentLength-previousLength) / float64(previousLength)
+			changePercent := math.Abs(change)
+
+			logger.Debug().Msgf("HTML stabilization check: length %d (change: %.2f%%)", currentLength, changePercent*100)
+
+			// If content has stabilized (change < 1%), we can return early
+			if changePercent < stabilityThreshold {
+				logger.Debug().Msg("HTML content stabilized")
+
+				return nil
+			}
+
+			previousLength = currentLength
+		}
+
+		// Check if we've exceeded the timeout
+		if time.Since(startTime) >= maxWaitTime {
+			logger.Debug().Msg("HTML stabilization timeout reached (5s)")
+
+			return nil
+		}
+
+		// Wait before next poll
+		time.Sleep(pollInterval)
+	}
 }
