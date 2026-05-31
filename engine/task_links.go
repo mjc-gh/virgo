@@ -2,8 +2,8 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -113,6 +113,11 @@ func parseLinksJSON(linksJSONStr string, logger *zerolog.Logger) ([]linkData, er
 func filterAndFormatLinks(links []linkData, search string, threshold int) string {
 	var results []string
 	for _, link := range links {
+		// Skip links that resolve to an empty location hash
+		if link.Href == "#" {
+			continue
+		}
+
 		// If no search term, include all links; otherwise apply fuzzy matching
 		if search == "" {
 			results = append(results, fmt.Sprintf("- [%s](%s)", link.Text, link.Href))
