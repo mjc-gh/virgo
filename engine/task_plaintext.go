@@ -14,6 +14,7 @@ type PlaintextResult struct {
 
 func performPlaintextTask(ctx context.Context, task *Task, logger *zerolog.Logger) (PlaintextResult, error) {
 	var plaintext string
+	selector := task.StringParam("selector", "body")
 
 	ctx, cancel := chromedp.NewContext(ctx)
 	defer cancel()
@@ -22,7 +23,7 @@ func performPlaintextTask(ctx context.Context, task *Task, logger *zerolog.Logge
 		chromedp.EmulateViewport(int64(task.winWidth), int64(task.winHeight)),
 		emulation.SetUserAgentOverride(task.userAgent),
 		chromedp.Navigate(task.url),
-		chromedp.Text("main", &plaintext, chromedp.ByQuery),
+		chromedp.Text(selector, &plaintext, chromedp.ByQuery),
 	)
 	if err != nil {
 		logger.Debug().Msgf("plaintext err: %v", err)

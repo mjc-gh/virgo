@@ -84,9 +84,18 @@ func main() {
 				Name:      "plaintext",
 				Usage:     "Get the plantext content of a URL",
 				Arguments: []cli.Argument{&cli.StringArg{Name: URL}},
-				Flags:     baseFlags,
+				Flags: append([]cli.Flag{
+					&cli.StringFlag{
+						Name: "selector", Aliases: []string{"S"}, Value: "body",
+						Usage: "CSS selector for content extraction",
+					},
+				}, baseFlags...),
 				Action: func(ctx context.Context, cmd *cli.Command) error {
-					return runTask(ctx, cmd, "plaintext", map[string]any{}, stdOutCallback)
+					params := map[string]any{
+						"selector": cmd.String("selector"),
+					}
+
+					return runTask(ctx, cmd, "plaintext", params, stdOutCallback)
 				},
 			}, {
 				Name:      "links",
