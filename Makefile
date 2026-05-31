@@ -25,6 +25,9 @@ chromedp.pull:
 chromedp.run:
 	docker run -d -p 9222:9222 --rm --name headless-shell chromedp/headless-shell
 
+chromedp.run-host:
+	docker run -d --network host --rm --name headless-shell chromedp/headless-shell
+
 .PHONY: release
 release:
 	@echo "Creating new release..."
